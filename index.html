@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Price Work Calculator</title>
+  <style>
+    :root {
+      --bg-1: #f7fbff;
+      --bg-2: #eef6ff;
+      --ink: #0f172a;
+      --muted: #475569;
+      --line: #dbe5f3;
+      --panel: #ffffff;
+      --accent: #0ea5e9;
+      --accent-2: #0369a1;
+      --ok: #0f766e;
+      --warn: #b45309;
+      --radius: 14px;
+      --shadow: 0 12px 30px rgba(2, 6, 23, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #d9efff 0%, transparent 60%),
+        radial-gradient(1100px 450px at 100% 0%, #e0e7ff 0%, transparent 55%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(920px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 24px 24px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+      letter-spacing: 0.01em;
+    }
+
+    .sub {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 16px 24px 0;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: #f8fbff;
+      color: #1e293b;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
+    }
+
+    .tab-btn:hover { transform: translateY(-1px); }
+
+    .tab-btn[aria-selected="true"] {
+      background: #e6f6ff;
+      border-color: #8fd8fb;
+      color: #0c4a6e;
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 20px 24px 24px;
+      animation: fadeIn 180ms ease;
+    }
+
+    .tab-panel.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      background: #fff;
+    }
+
+    input:focus {
+      border-color: #7dd3fc;
+      box-shadow: 0 0 0 4px rgba(125, 211, 252, 0.25);
+    }
+
+    input:disabled {
+      background: #f8fafc;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .check {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #1e293b;
+      font-size: 0.95rem;
+      user-select: none;
+    }
+
+    .result {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #f8fbff;
+    }
+
+    .result-title {
+      margin: 0;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #0369a1;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .result-value {
+      margin: 8px 0 0;
+      font-size: clamp(1.15rem, 2.5vw, 1.6rem);
+      font-weight: 800;
+      color: var(--ok);
+    }
+
+    .hint {
+      margin: 10px 0 0;
+      color: var(--warn);
+      font-size: 0.9rem;
+      min-height: 1.2em;
+    }
+
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+      .header, .tabs, .tab-panel { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="header">
+      <h1>Price Work Calculator</h1>
+      <p class="sub">Compare the work time needed to buy something and its possible future value.</p>
+    </section>
+
+    <nav class="tabs" role="tablist" aria-label="Calculator tabs">
+      <button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-work-time" id="btn-work-time">How Much This Costs in Work Time</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-money-time" id="btn-money-time">Money in Time</button>
+    </nav>
+
+    <section id="tab-work-time" class="tab-panel active" role="tabpanel" aria-labelledby="btn-work-time">
+      <div class="grid">
+        <div class="field">
+          <label for="cost1">Cost</label>
+          <input id="cost1" type="number" min="0" step="0.01" placeholder="e.g. 1200" />
+        </div>
+        <div class="field">
+          <label for="monthly">Monthly Payment</label>
+          <input id="monthly" type="number" min="0" step="0.01" placeholder="e.g. 3000" />
+        </div>
+        <div class="field">
+          <label for="hourly">Hourly Payment</label>
+          <input id="hourly" type="number" min="0" step="0.01" placeholder="e.g. 20" />
+        </div>
+        <div class="field">
+          <label for="hoursWeek">Hours per Week</label>
+          <input id="hoursWeek" type="number" min="0" step="0.01" placeholder="e.g. 40" />
+        </div>
+      </div>
+
+      <div class="result" aria-live="polite">
+        <p class="result-title">Required Work Time</p>
+        <p class="result-value" id="workResult">Enter values to calculate.</p>
+        <p class="hint" id="workHint"></p>
+      </div>
+    </section>
+
+    <section id="tab-money-time" class="tab-panel" role="tabpanel" aria-labelledby="btn-money-time">
+      <div class="grid">
+        <div class="field">
+          <label for="cost2">Cost (Initial Amount)</label>
+          <input id="cost2" type="number" min="0" step="0.01" placeholder="e.g. 1000" />
+        </div>
+        <div class="field">
+          <label for="years">Years</label>
+          <input id="years" type="number" min="0" step="1" placeholder="e.g. 10" />
+        </div>
+        <div class="field">
+          <label for="interest">Interest `i` (annual %)</label>
+          <input id="interest" type="number" step="0.01" placeholder="e.g. 8" />
+        </div>
+      </div>
+
+      <label class="check" for="monthlyContribution">
+        <input id="monthlyContribution" type="checkbox" />
+        Add cost every month (treat cost as monthly contribution)
+      </label>
+
+      <div class="result" aria-live="polite">
+        <p class="result-title">Future Value</p>
+        <p class="result-value" id="moneyResult">Enter values to calculate.</p>
+        <p class="hint" id="moneyHint"></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
+    const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('aria-controls');
+
+        tabButtons.forEach((b) => b.setAttribute('aria-selected', String(b === btn)));
+        tabPanels.forEach((panel) => panel.classList.toggle('active', panel.id === targetId));
+      });
+    });
+
+    const cost1 = document.getElementById('cost1');
+    const monthly = document.getElementById('monthly');
+    const hourly = document.getElementById('hourly');
+    const hoursWeek = document.getElementById('hoursWeek');
+    const workResult = document.getElementById('workResult');
+    const workHint = document.getElementById('workHint');
+
+    const cost2 = document.getElementById('cost2');
+    const years = document.getElementById('years');
+    const interest = document.getElementById('interest');
+    const monthlyContribution = document.getElementById('monthlyContribution');
+    const moneyResult = document.getElementById('moneyResult');
+    const moneyHint = document.getElementById('moneyHint');
+
+    function parseNum(input) {
+      const value = Number(input.value);
+      return Number.isFinite(value) ? value : NaN;
+    }
+
+    function formatCurrency(value) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+    }
+
+    function updateIncomeLock() {
+      const monthlyVal = monthly.value.trim();
+      const hourlyVal = hourly.value.trim();
+
+      if (monthlyVal !== '') {
+        hourly.disabled = true;
+      } else {
+        hourly.disabled = false;
+      }
+
+      if (hourlyVal !== '') {
+        monthly.disabled = true;
+      } else {
+        monthly.disabled = false;
+      }
+    }
+
+    function calculateWorkTime() {
+      updateIncomeLock();
+
+      const cost = parseNum(cost1);
+      const monthlyPay = parseNum(monthly);
+      const hourlyPay = parseNum(hourly);
+      const weeklyHours = parseNum(hoursWeek);
+
+      if (!(cost > 0)) {
+        workResult.textContent = 'Enter values to calculate.';
+        workHint.textContent = '';
+        return;
+      }
+
+      let computedHourly = NaN;
+      if (monthly.value.trim() !== '' && monthlyPay > 0 && weeklyHours > 0) {
+        // Monthly salary converted to average hourly pay.
+        computedHourly = monthlyPay / (weeklyHours * 52 / 12);
+      }
+
+      if (hourly.value.trim() !== '' && hourlyPay > 0) {
+        computedHourly = hourlyPay;
+      }
+
+      if (!(computedHourly > 0)) {
+        workResult.textContent = 'Enter values to calculate.';
+        workHint.textContent = 'Provide either Monthly Payment + Hours/Week, or Hourly Payment.';
+        return;
+      }
+
+      const hoursNeeded = cost / computedHourly;
+      const weeksNeeded = weeklyHours > 0 ? hoursNeeded / weeklyHours : NaN;
+
+      workResult.textContent = `${hoursNeeded.toFixed(2)} hours`;
+      workHint.textContent = Number.isFinite(weeksNeeded)
+        ? `Approx. ${weeksNeeded.toFixed(2)} work weeks.`
+        : '';
+    }
+
+    function calculateMoneyInTime() {
+      const principal = parseNum(cost2);
+      const nYears = parseNum(years);
+      const annualRate = parseNum(interest) / 100;
+
+      if (!(principal >= 0) || !(nYears >= 0) || !Number.isFinite(annualRate)) {
+        moneyResult.textContent = 'Enter values to calculate.';
+        moneyHint.textContent = '';
+        return;
+      }
+
+      const months = Math.round(nYears * 12);
+      const monthlyRate = annualRate / 12;
+      let futureValue;
+
+      if (monthlyContribution.checked) {
+        if (monthlyRate === 0) {
+          futureValue = principal * months;
+        } else {
+          futureValue = principal * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+        }
+        moneyHint.textContent = 'Using monthly contribution formula (ordinary annuity).';
+      } else {
+        futureValue = principal * Math.pow(1 + annualRate, nYears);
+        moneyHint.textContent = 'Using compound growth on a single initial amount.';
+      }
+
+      moneyResult.textContent = formatCurrency(futureValue);
+    }
+
+    [cost1, monthly, hourly, hoursWeek].forEach((el) => {
+      el.addEventListener('input', calculateWorkTime);
+    });
+
+    [cost2, years, interest].forEach((el) => {
+      el.addEventListener('input', calculateMoneyInTime);
+    });
+
+    monthlyContribution.addEventListener('change', calculateMoneyInTime);
+
+    calculateWorkTime();
+    calculateMoneyInTime();
+  </script>
+</body>
+</html>
